@@ -122,7 +122,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	 */
 	private void stopRecording() {
 		mRecorder.stop();
-		mRecorder.release();
+		mRecorder.release();//释放资源
 		mRecorder = null;
 	}
 
@@ -133,8 +133,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		mPlayer = new MediaPlayer();
 		try {
 			mPlayer.setDataSource(mFileName);//设置多媒体数据来源
-			mPlayer.prepare();  
-            mPlayer.start();  
+			mPlayer.prepare(); //准备 
+            mPlayer.start();  //开始
 		} catch (IOException e) {
 			Log.e(TAG,getString(R.string.e_play));  
 		}
