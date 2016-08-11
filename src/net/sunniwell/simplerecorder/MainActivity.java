@@ -45,7 +45,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	private Button mBtnRecording;// 录音按钮
 	private Button mBtnPlay;// 播放按钮
 	private boolean mIsRecordingState = false;// 是否是录音状态
-	private boolean mIsPlayState = false;// 是否是播放状态
+	private boolean mIsPlayState = true;// 是否是播放状态
 	private MediaRecorder mRecorder = null;// 录音操作对象
 	private MediaPlayer mPlayer = null;// 媒体播放器对象
 	private String mFileName = null;// 录音存储路径
@@ -57,6 +57,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	private Chronometer mTimer; // 计时器
 	private LinearLayout mLlRecording;
 	private LinearLayout mLlPlay;
+	private File mFile;// 正在播放的文件
+	private Button mBtnStopPlay;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +90,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		mLvPlaylist = (ListView) findViewById(R.id.lv_playlist);
 		mBtnRecording = (Button) findViewById(R.id.btn_recording);
 		mBtnPlay = (Button) findViewById(R.id.btn_play);
+		mBtnStopPlay = (Button) findViewById(R.id.btn_stop_play);
 		mFilePath = getFilePath();
 		timing();
 	}
@@ -123,7 +126,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	private void setPlaylistClickListener() {
 		mBtnRecording.setOnClickListener(this);
-		// mBtnPlay.setOnClickListener(this);
+		mBtnPlay.setOnClickListener(this);
+		mBtnStopPlay.setOnClickListener(this);
 		mLvPlaylist.setOnItemClickListener(new LvPlaylistItmeListener());
 		mLvPlaylist.setOnItemLongClickListener(new LvPlaylistItmeLongListener());
 	}
@@ -145,13 +149,26 @@ public class MainActivity extends Activity implements OnClickListener {
 			mIsRecordingState = !mIsRecordingState;
 			mBtnRecording.setEnabled(true);
 			break;
-		/*
-		 * case R.id.btn_play: // 判断播放按钮的状态，根据相应的状态处理事务 //
-		 * mBtnPlay.setText(R.string.wait_for); mBtnPlay.setEnabled(false); if
-		 * (mIsPlayState) { stopPlay(); mBtnPlay.setText(R.string.start_play); }
-		 * else { startPlay(); mBtnPlay.setText(R.string.stop_play); }
-		 * mIsPlayState = !mIsPlayState; mBtnPlay.setEnabled(true); break;
-		 */
+
+		case R.id.btn_play: // 判断播放按钮的状态，根据相应的状态处理事务 //
+			mBtnPlay.setEnabled(false);
+			if (mIsPlayState) {
+				pausePlay();
+				mBtnPlay.setText(R.string.continue_play);
+			} else {
+				mPlayer.start();
+				mBtnPlay.setText(R.string.pause_play);
+			}
+			mIsPlayState = !mIsPlayState;
+			mBtnPlay.setEnabled(true);
+			break;
+		case R.id.btn_stop_play: // 停止播放
+			stopPlay();
+			mIsPlayState = !mIsPlayState;
+			mBtnPlay.setText(R.string.pause_play);
+			mLlRecording.setVisibility(View.VISIBLE);
+			mLlPlay.setVisibility(View.GONE);
+			break;
 
 		default:
 			break;
@@ -221,24 +238,36 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * 开始播放
 	 */
 	private void startPlay(File fileName) {
-		MediaPlayer player = new MediaPlayer();
+		if(mPlayer != null){
+			stopPlay();
+		}
+		mPlayer = new MediaPlayer();
 		try {
-			player.setDataSource(new FileInputStream(fileName).getFD());// 设置多媒体数据来源
-			player.prepare(); // 准备
-			player.start(); // 开始
+			mPlayer.setDataSource(new FileInputStream(fileName).getFD());// 设置多媒体数据来源
+			mPlayer.prepare(); // 准备
+			mPlayer.start(); // 开始
 			// mPlayer.getDuration();
 		} catch (IOException e) {
 			Log.e(TAG, getString(R.string.e_play));
 		}
 		// 播放完成，改变按钮状态
-		player.setOnCompletionListener(new OnCompletionListener() {
+		mPlayer.setOnCompletionListener(new OnCompletionListener() {
 
 			@Override
 			public void onCompletion(MediaPlayer mp) {
 				mLlRecording.setVisibility(View.VISIBLE);
 				mLlPlay.setVisibility(View.GONE);
+				mIsPlayState = !mIsPlayState;
+				mBtnPlay.setText(R.string.pause_play);
 			}
 		});
+	}
+
+	/**
+	 * 暂停播放
+	 */
+	private void pausePlay() {
+		mPlayer.pause();
 	}
 
 	/**
@@ -356,8 +385,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 			mLlRecording.setVisibility(View.GONE);
 			mLlPlay.setVisibility(View.VISIBLE);
-			File file = mFiles.get(position);
-			startPlay(file);
+			mFile = mFiles.get(position);
+			startPlay(mFile);
 		}
 	}
 
