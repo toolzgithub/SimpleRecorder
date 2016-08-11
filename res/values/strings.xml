@@ -7,11 +7,14 @@
     <string name="start_recording">开始录音</string>
     <string name="stop_recording">停止录音</string>
     <string name="start_play">开始播放</string>
+    <string name="pause_play">暂停播放</string>
+    <string name="continue_play">继续播放</string>
     <string name="stop_play">停止播放</string>
     <string name="wait_for">请稍后...</string>
     <string name="no_sd">SD卡找不到！</string>
     <string name="e_recording">录音准备出现异常！</string>
     <string name="e_play">播放失败!</string>
     <string name="recording_name">录音文件名称</string>
+    <string name="duration">00:00</string>
 
 </resources>

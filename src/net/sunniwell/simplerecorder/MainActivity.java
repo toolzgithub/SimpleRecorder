@@ -1,24 +1,35 @@
 package net.sunniwell.simplerecorder;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.Chronometer;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +54,9 @@ public class MainActivity extends Activity implements OnClickListener {
 	private ListView mLvPlaylist;// 录音列表
 	private PlaylistAdapter mPlaylistAdapter;
 	private List<File> mFiles = new ArrayList<>();// 录音文件集合
+	private Chronometer mTimer; // 计时器
+	private LinearLayout mLlRecording;
+	private LinearLayout mLlPlay;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +83,13 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	private void initView() {
+		mLlRecording = (LinearLayout) findViewById(R.id.ll_recording);
+		mLlPlay = (LinearLayout) findViewById(R.id.ll_play);
 		mLvPlaylist = (ListView) findViewById(R.id.lv_playlist);
 		mBtnRecording = (Button) findViewById(R.id.btn_recording);
 		mBtnPlay = (Button) findViewById(R.id.btn_play);
 		mFilePath = getFilePath();
+		timing();
 	}
 
 	/**
@@ -106,7 +123,9 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	private void setPlaylistClickListener() {
 		mBtnRecording.setOnClickListener(this);
-		mBtnPlay.setOnClickListener(this);
+		// mBtnPlay.setOnClickListener(this);
+		mLvPlaylist.setOnItemClickListener(new LvPlaylistItmeListener());
+		mLvPlaylist.setOnItemLongClickListener(new LvPlaylistItmeLongListener());
 	}
 
 	@Override
@@ -117,29 +136,22 @@ public class MainActivity extends Activity implements OnClickListener {
 			// mBtnRecording.setText(R.string.wait_for);
 			mBtnRecording.setEnabled(false);
 			if (mIsRecordingState) {
-				stopRecording();
 				mBtnRecording.setText(R.string.start_recording);
+				stopRecording();
 			} else {
-				startRecording();
 				mBtnRecording.setText(R.string.stop_recording);
+				startRecording();
 			}
 			mIsRecordingState = !mIsRecordingState;
 			mBtnRecording.setEnabled(true);
 			break;
-		case R.id.btn_play:
-			// 判断播放按钮的状态，根据相应的状态处理事务
-			// mBtnPlay.setText(R.string.wait_for);
-			mBtnPlay.setEnabled(false);
-			if (mIsPlayState) {
-				stopPlay();
-				mBtnPlay.setText(R.string.start_play);
-			} else {
-				startPlay();
-				mBtnPlay.setText(R.string.stop_play);
-			}
-			mIsPlayState = !mIsPlayState;
-			mBtnPlay.setEnabled(true);
-			break;
+		/*
+		 * case R.id.btn_play: // 判断播放按钮的状态，根据相应的状态处理事务 //
+		 * mBtnPlay.setText(R.string.wait_for); mBtnPlay.setEnabled(false); if
+		 * (mIsPlayState) { stopPlay(); mBtnPlay.setText(R.string.start_play); }
+		 * else { startPlay(); mBtnPlay.setText(R.string.stop_play); }
+		 * mIsPlayState = !mIsPlayState; mBtnPlay.setEnabled(true); break;
+		 */
 
 		default:
 			break;
@@ -163,7 +175,7 @@ public class MainActivity extends Activity implements OnClickListener {
 			Timestamp tamp = new Timestamp(System.currentTimeMillis());
 			mFileName = mFilePath + "/LY" + tamp + ".3gp";
 			Log.d("LY", mFileName);
-			Toast.makeText(getApplicationContext(), mFileName, 1).show();
+			// Toast.makeText(getApplicationContext(), mFileName, 1).show();
 			// 设置录制的音频文件的保存位置。
 			mRecorder.setOutputFile(mFileName);
 		}
@@ -176,6 +188,16 @@ public class MainActivity extends Activity implements OnClickListener {
 			e.printStackTrace();
 		}
 		mRecorder.start();// 开始录音
+		mTimer.setBase(SystemClock.elapsedRealtime()); // 清空计时器
+		mTimer.start();
+	}
+
+	/**
+	 * 创建计时器
+	 */
+	private void timing() {
+		// 获得计时器对象
+		mTimer = (Chronometer) this.findViewById(R.id.c_duration);
 	}
 
 	/**
@@ -184,6 +206,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	private void stopRecording() {
 		mRecorder.stop();
 		mRecorder.release();// 释放资源
+		mTimer.stop();// 停止计时
+		mTimer.setBase(SystemClock.elapsedRealtime());
 		File file = new File(mFileName);
 		Log.d("LY", file.getName());
 		mFiles.add(file);
@@ -196,22 +220,23 @@ public class MainActivity extends Activity implements OnClickListener {
 	/**
 	 * 开始播放
 	 */
-	private void startPlay() {
-		mPlayer = new MediaPlayer();
+	private void startPlay(File fileName) {
+		MediaPlayer player = new MediaPlayer();
 		try {
-			mPlayer.setDataSource(mFileName);// 设置多媒体数据来源
-			mPlayer.prepare(); // 准备
-			mPlayer.start(); // 开始
+			player.setDataSource(new FileInputStream(fileName).getFD());// 设置多媒体数据来源
+			player.prepare(); // 准备
+			player.start(); // 开始
+			// mPlayer.getDuration();
 		} catch (IOException e) {
 			Log.e(TAG, getString(R.string.e_play));
 		}
 		// 播放完成，改变按钮状态
-		mPlayer.setOnCompletionListener(new OnCompletionListener() {
+		player.setOnCompletionListener(new OnCompletionListener() {
 
 			@Override
 			public void onCompletion(MediaPlayer mp) {
-				mIsPlayState = !mIsPlayState;
-				mBtnPlay.setText(R.string.start_play);
+				mLlRecording.setVisibility(View.VISIBLE);
+				mLlPlay.setVisibility(View.GONE);
 			}
 		});
 	}
@@ -272,9 +297,42 @@ public class MainActivity extends Activity implements OnClickListener {
 				playlistViews = (PlaylistViews) convertView.getTag();
 			}
 			playlistViews.mTvRecordingName.setText(file.getName());
+			SimpleDateFormat formatter = new SimpleDateFormat("mm:ss");// 初始化Formatter的转换格式。
+			String time = "";
+			if (getRecordingTime(file) > 1000) {
+				time = formatter.format(getRecordingTime(file));
+			} else {
+				time = "<00:01";
+			}
+			playlistViews.mTvRecordingDuration.setText(time);
 			return convertView;
 		}
 
+		/**
+		 * 功能：获得音频文件的时长
+		 * 
+		 * @author 郑鹏超
+		 * @param file
+		 * @return
+		 * @时间 2016年8月11日
+		 */
+		private int getRecordingTime(File file) {
+			MediaPlayer mediaPlayer = new MediaPlayer();
+			int time = -1;
+			try {
+				System.out.println(file.toString());
+				mediaPlayer.setDataSource(new FileInputStream(file).getFD());// 设置多媒体数据来源
+																				// getFD()返回底层文件描述符
+				mediaPlayer.prepare(); // 准备
+				time = mediaPlayer.getDuration();
+				mediaPlayer.release();
+				mediaPlayer = null;
+			} catch (IOException e) {
+				e.printStackTrace();
+				Log.e(TAG, getString(R.string.e_play));
+			}
+			return time;
+		}
 	}
 
 	/**
@@ -285,6 +343,67 @@ public class MainActivity extends Activity implements OnClickListener {
 	private class PlaylistViews {
 		TextView mTvRecordingName;
 		TextView mTvRecordingDuration;
+	}
+
+	/**
+	 * 功能：LvPlaylist的单条目点击监听，用于播放录音
+	 * 
+	 * @author 郑鹏超
+	 */
+	private class LvPlaylistItmeListener implements OnItemClickListener {
+
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+			mLlRecording.setVisibility(View.GONE);
+			mLlPlay.setVisibility(View.VISIBLE);
+			File file = mFiles.get(position);
+			startPlay(file);
+		}
+	}
+
+	/**
+	 * 功能：LvPlaylist的单条目长按监听，用于删除录音文件
+	 * 
+	 * @author 郑鹏超
+	 */
+	private class LvPlaylistItmeLongListener implements OnItemLongClickListener {
+
+		@Override
+		public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+			showUninstallDialog(position);
+			return true;
+		}
+
+	}
+
+	/**
+	 * 功能：删除窗口
+	 * 
+	 * @author 郑鹏超
+	 */
+	private void showUninstallDialog(final int position) {
+		final File file = mFiles.get(position);
+		AlertDialog.Builder builder = new Builder(MainActivity.this);
+		builder.setMessage("你是否要删除“" + file.getName() + "”?");
+		builder.setTitle("删除");
+		builder.setIcon(android.R.drawable.ic_menu_delete);
+		builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+
+			}
+		});
+		builder.setPositiveButton("删除", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				file.delete();
+				mFiles.remove(position);
+				mPlaylistAdapter.notifyDataSetChanged();
+			}
+		});
+		builder.create().show();
 	}
 
 }
