@@ -18,6 +18,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
@@ -31,6 +32,7 @@ import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,6 +44,7 @@ import android.widget.Toast;
  */
 public class MainActivity extends Activity implements OnClickListener {
 
+	protected static final int PLAY_PROGRESSBAR = 99;// 播放进度条what
 	private Button mBtnRecording;// 录音按钮
 	private Button mBtnPlay;// 播放按钮
 	private boolean mIsRecordingState = false;// 是否是录音状态
@@ -59,6 +62,9 @@ public class MainActivity extends Activity implements OnClickListener {
 	private LinearLayout mLlPlay;
 	private File mFile;// 正在播放的文件
 	private Button mBtnStopPlay;
+	private ProgressBar mPbPlay;// 播放进度条
+	private Handler mHandler = new Handler();
+	private Runnable mUpdateProgressBarRunnable;// 子线程更新进度条
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +97,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		mBtnRecording = (Button) findViewById(R.id.btn_recording);
 		mBtnPlay = (Button) findViewById(R.id.btn_play);
 		mBtnStopPlay = (Button) findViewById(R.id.btn_stop_play);
+		mPbPlay = (ProgressBar) findViewById(R.id.pb_play);
+		mPbPlay.setProgress(0);
 		mFilePath = getFilePath();
 		timing();
 	}
@@ -238,7 +246,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * 开始播放
 	 */
 	private void startPlay(File fileName) {
-		if(mPlayer != null){
+		if (mPlayer != null) {
 			stopPlay();
 		}
 		mPlayer = new MediaPlayer();
@@ -246,7 +254,7 @@ public class MainActivity extends Activity implements OnClickListener {
 			mPlayer.setDataSource(new FileInputStream(fileName).getFD());// 设置多媒体数据来源
 			mPlayer.prepare(); // 准备
 			mPlayer.start(); // 开始
-			// mPlayer.getDuration();
+			updateProgressBar();
 		} catch (IOException e) {
 			Log.e(TAG, getString(R.string.e_play));
 		}
@@ -264,6 +272,26 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	/**
+	 * 功能：更新进度条
+	 * 
+	 * @author 郑鹏超
+	 * @时间 2016年8月12日
+	 */
+	private void updateProgressBar() {
+		mPbPlay.setMax(mPlayer.getDuration());// 设置进度条最大值
+		mUpdateProgressBarRunnable = new Runnable() {
+			@Override
+			public void run() {
+				mPbPlay.setProgress(mPlayer.getCurrentPosition());
+				if (mPlayer.getCurrentPosition() <= mPlayer.getDuration()) {
+					mHandler.postDelayed(mUpdateProgressBarRunnable, 100);// 发送异步消息，实现实时更新进度条
+				}
+			}
+		};
+		mHandler.post(mUpdateProgressBarRunnable);// 开启子线程更新进度条
+	}
+
+	/**
 	 * 暂停播放
 	 */
 	private void pausePlay() {
@@ -276,6 +304,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	private void stopPlay() {
 		mPlayer.release();
 		mPlayer = null;
+		mHandler.removeCallbacksAndMessages(null);// 清除或有Handler消息
+		mPbPlay.setProgress(0);
 	}
 
 	/**
