@@ -76,6 +76,19 @@ public class MainActivity extends Activity implements OnClickListener {
 		setPlaylistClickListener();
 	}
 
+	private void initView() {
+		mLlRecording = (LinearLayout) findViewById(R.id.ll_recording);
+		mLlPlay = (LinearLayout) findViewById(R.id.ll_play);
+		mLvPlaylist = (ListView) findViewById(R.id.lv_playlist);
+		mBtnRecording = (Button) findViewById(R.id.btn_recording);
+		mBtnPlay = (Button) findViewById(R.id.btn_play);
+		mBtnStopPlay = (Button) findViewById(R.id.btn_stop_play);
+		mPbPlay = (ProgressBar) findViewById(R.id.pb_play);
+		mPbPlay.setProgress(0);
+		mFilePath = getFilePath();
+		timing();
+	}
+
 	/**
 	 * 功能：检索录音文件夹，获得所有的文件
 	 * 
@@ -90,17 +103,29 @@ public class MainActivity extends Activity implements OnClickListener {
 		// }
 	}
 
-	private void initView() {
-		mLlRecording = (LinearLayout) findViewById(R.id.ll_recording);
-		mLlPlay = (LinearLayout) findViewById(R.id.ll_play);
-		mLvPlaylist = (ListView) findViewById(R.id.lv_playlist);
-		mBtnRecording = (Button) findViewById(R.id.btn_recording);
-		mBtnPlay = (Button) findViewById(R.id.btn_play);
-		mBtnStopPlay = (Button) findViewById(R.id.btn_stop_play);
-		mPbPlay = (ProgressBar) findViewById(R.id.pb_play);
-		mPbPlay.setProgress(0);
-		mFilePath = getFilePath();
-		timing();
+	/**
+	 * 功能：初始化数据
+	 * 
+	 * @author 郑鹏超
+	 * @时间 2016年8月11日
+	 */
+	private void initData() {
+		mPlaylistAdapter = new PlaylistAdapter(mFiles);
+		mLvPlaylist.setAdapter(mPlaylistAdapter);
+	}
+
+	/**
+	 * 功能：设置监听事件
+	 * 
+	 * @author 郑鹏超
+	 * @时间 2016年8月11日
+	 */
+	private void setPlaylistClickListener() {
+		mBtnRecording.setOnClickListener(this);
+		mBtnPlay.setOnClickListener(this);
+		mBtnStopPlay.setOnClickListener(this);
+		mLvPlaylist.setOnItemClickListener(new LvPlaylistItmeListener());
+		mLvPlaylist.setOnItemLongClickListener(new LvPlaylistItmeLongListener());
 	}
 
 	/**
@@ -119,25 +144,6 @@ public class MainActivity extends Activity implements OnClickListener {
 			return filePath;
 		}
 		return null;
-	}
-
-	/**
-	 * 功能：初始化数据
-	 * 
-	 * @author 郑鹏超
-	 * @时间 2016年8月11日
-	 */
-	private void initData() {
-		mPlaylistAdapter = new PlaylistAdapter(mFiles);
-		mLvPlaylist.setAdapter(mPlaylistAdapter);
-	}
-
-	private void setPlaylistClickListener() {
-		mBtnRecording.setOnClickListener(this);
-		mBtnPlay.setOnClickListener(this);
-		mBtnStopPlay.setOnClickListener(this);
-		mLvPlaylist.setOnItemClickListener(new LvPlaylistItmeListener());
-		mLvPlaylist.setOnItemLongClickListener(new LvPlaylistItmeLongListener());
 	}
 
 	@Override
