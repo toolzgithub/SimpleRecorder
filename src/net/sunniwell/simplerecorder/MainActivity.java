@@ -51,7 +51,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	private boolean mIsPlayState = true;// 是否是播放状态
 	private MediaRecorder mRecorder = null;// 录音操作对象
 	private MediaPlayer mPlayer = null;// 媒体播放器对象
-	private String mFileName = null;// 录音存储路径
+	private String mFileName = null;// 录音文件
 	private String TAG = getClass().getSimpleName();
 	private File mFilePath = null;// 文件夹路径
 	private ListView mLvPlaylist;// 录音列表
@@ -97,10 +97,10 @@ public class MainActivity extends Activity implements OnClickListener {
 	 */
 	private void searchFiles() {
 		mFiles.addAll(Arrays.asList(mFilePath.listFiles()));// 获得所有文件
-		// Log.d("LY", mFiles.length + "个");
-		// for (File file : mFiles) {
-		//// Log.d("LY", file.getName());
-		// }
+		/*
+		 * Log.d("LY", mFiles.size() + "个"); for (File file : mFiles) {
+		 * Log.d("LY", file.getName()); }
+		 */
 	}
 
 	/**
